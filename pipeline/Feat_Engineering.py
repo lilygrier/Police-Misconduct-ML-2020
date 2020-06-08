@@ -1,5 +1,10 @@
 """Created by Sasha on June 7th
-Currently 3 function we used in notebooks previously to add features of complaint bins, suspension length, salary """
+Currently some function we used in notebooks previously to add features of complaint bins, suspension length, salary
+Next steps:
+Use of race of victims from complaints-victims
+Get number of CPD witnesses for each complaint
+Get info from TRR action report maybe
+"""
 import pandas as pd
 
 def relevant_complaints(complaints, complaints_accused, t1, t2):
@@ -108,6 +113,17 @@ def prep_y(complaints_t2):
     target_df = complaints_t2[["UID", "target_use_of_force", "target_drug", "target_racial",
                            "target_sustained", "target_nonviolent", "target_other"]].drop_duplicates()
     return target_df
+
+def add_victim_race(by_officer_df, complaints_t1, complaints_victims):
+    """Written on June 7th by Sasha"""
+    complaints_w_victim_data = complaints_t1.merge(complaints_victims, how="left", on="cr_id")
+    by_officer_groupby = pd.DataFrame(complaints_w_victim_data.groupby(["UID", "race"]).size())
+    by_officer_racial_breakdown = pd.pivot_table(by_officer_groupby, values=0, index=['UID'], columns=['race']).reset_index()
+    by_officer_racial_breakdown.fillna(0, inplace=True)
+    by_officer_racial_breakdown.set_index("UID", inplace=True)
+    by_officer_racial_breakdown.div(by_officer_racial_breakdown.sum(axis=1), axis=0)
+    by_officer_racial_breakdown.columns = ["Pcnt Complaints Against " + x for x in by_officer_racial_breakdown.columns]
+    return by_officer_racial_breakdown, list(by_officer_racial_breakdown.columns)
 
 def make_target_col(final_df, desired_targets, col_name):
     '''

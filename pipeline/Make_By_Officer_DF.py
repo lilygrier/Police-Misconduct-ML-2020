@@ -11,9 +11,11 @@ TRR_main = pd.read_csv("../data/TRR-main_2004-2016_2016-09.csv.gz", compression=
 TRR_officers = pd.read_csv("../data/TRR-officers_2004-2016_2016-09.csv.gz", compression="gzip")
 complaints_accused = pd.read_csv("../data/complaints-accused.csv.gz", compression="gzip")
 complaints = pd.read_csv("../data/complaints-complaints.csv.gz", compression="gzip")
-# settlements = pd.read_csv("../data/settlements_1952-2016_2017-01.csv.gz", compression="gzip")
+complaints_victims = pd.read_csv("../data/complaints-victims.csv.gz", compression="gzip")
 salary_ranks = pd.read_csv("../data/salary-ranks_2002-2017_2017-09.csv.gz", compression="gzip")
 
+na_to_zero = ["suspension_length", "settlement", "count_sustained", "trr_total",
+                              "trr_firearms_total", "trr_taser_total"]
 
 def make_df(t1, t2):
     '''
@@ -51,13 +53,14 @@ def make_df(t1, t2):
 def pare_df(df, bin_names):
     '''
     Fills in NA values resulting from joining and removes unnecessary columns.
+    Sasha's Note: made na_to_zero a global variable so that I could add racial_col to it in add_complaint_data
     '''
-    target_cols = ["target_use_of_force", "target_drug", "target_racial", "target_sustained", 
-                "target_nonviolent", "target_other"]
-    na_to_zero = bin_names + ["suspension_length", "settlement", "count_sustained", "trr_total",
-                              "trr_firearms_total", "trr_taser_total"]
+
+    target_cols = ["target_use_of_force", "target_drug", "target_racial", "target_sustained",
+                   "target_nonviolent", "target_other"]
+    na_to_zero.extend(bin_names)
     other_vars_to_include = ["start_date_timestamp", "cleaned_rank", "birth_year",
-                            "current_unit", "average_salary", "salary_change", "race", "gender"]
+                             "current_unit", "average_salary", "salary_change", "race", "gender"]
     df[target_cols] = df[target_cols].fillna(value=False)
     df["start_date"] = pd.to_datetime(df["start_date"])
     df["start_date_timestamp"] = df["start_date"].apply(lambda x: datetime.timestamp(x) if 
@@ -79,7 +82,6 @@ def add_settlements_data(officer_profiles, t1):
     '''
     settlements = pd.read_csv("../data/settlements_1952-2016_2017-01.csv.gz", compression="gzip")
     settlements["incident_date"] = pd.to_datetime(settlements["incident_date"])
-    print(settlements.head(5))
     settlements["settlement"] = settlements["settlement"].str.replace("$", "")
     settlements["settlement"] = settlements["settlement"].str.replace(",", "")
     settlements["settlement"] = settlements["settlement"].astype(int)
@@ -116,6 +118,12 @@ def add_complaint_data(complaints_t1, by_officer_df):
     complaint_bins_by_UID = complaints_t1.groupby(["UID", "complaints_binned"]).size().unstack().fillna(0)
     bin_names = list(complaint_bins_by_UID.columns)
     by_officer_df = by_officer_df.merge(complaint_bins_by_UID, how = "left", on = "UID")
+    # add victim race info
+    by_officer_racial_breakdown, racial_cols = feat_engineer_helpers.add_victim_race(by_officer_df,
+                                                                        complaints_t1, complaints_victims)
+    by_officer_df = by_officer_df.merge(by_officer_racial_breakdown,
+                                        how="left", left_on="UID", right_index=True)
+    na_to_zero.extend(racial_cols)
     # add discipline info
     feat_engineer_helpers.add_suspension_length(complaints_t1)
     complaints_t1["count_sustained"] = \
@@ -125,7 +133,7 @@ def add_complaint_data(complaints_t1, by_officer_df):
     disciplines_t1_by_UID = complaints_t1.groupby("UID").agg({"count_sustained":"sum", "suspension_length":"sum"})
     assert ((disciplines_t1_by_UID["suspension_length"]>0) & (disciplines_t1_by_UID["count_sustained"] ==0)).sum() ==0
     by_officer_df = by_officer_df.merge(disciplines_t1_by_UID, how = "left", on="UID")
-    return (bin_names, by_officer_df)
+    return bin_names, by_officer_df
 
 def add_salary_data(by_officer_df, t1):
     salary_ranks_t1_T = feat_engineer_helpers.add_salary_data(salary_ranks, t1)
