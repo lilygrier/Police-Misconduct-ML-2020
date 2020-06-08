@@ -123,6 +123,7 @@ def add_victim_race(by_officer_df, complaints_t1, complaints_victims):
     by_officer_racial_breakdown.set_index("UID", inplace=True)
     by_officer_racial_breakdown.div(by_officer_racial_breakdown.sum(axis=1), axis=0)
     by_officer_racial_breakdown.columns = ["Pcnt Complaints Against " + x for x in by_officer_racial_breakdown.columns]
+
     return by_officer_racial_breakdown, list(by_officer_racial_breakdown.columns)
 
 def make_target_col(final_df, desired_targets, col_name):
