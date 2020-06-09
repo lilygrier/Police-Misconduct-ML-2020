@@ -52,6 +52,9 @@ def make_df(t1, t2):
     # some final cleaning steps
     final_df = pare_df(final_df, na_to_zero, cont_feat_col)
     final_df["cleaned_rank"].fillna(value="Unknown", inplace=True)
+    #add complaints filled by officer 
+    final_df = get_officer_filled_complaints(complaints_t1, final_df)
+    
     return cont_feat_col, final_df
 
 def pare_df(df, na_to_zero, cont_feat_col):
@@ -79,6 +82,15 @@ def get_relevant_complaints(t1, t2):
     complaints = pd.read_csv("../data/complaints-complaints.csv.gz", compression="gzip")
     complaints_t1, complaints_t2 = feat_engineer_helpers.relevant_complaints(complaints, complaints_accused, t1, t2)
     return (complaints_t1, complaints_t2)
+
+def get_officer_filled_complaints(complaints_t1, final_df):
+    officer_filled_complaints = pd.read_csv("../data/officer-filed-complaints__2017-09.csv.gz", compression="gzip")
+    merged_df = complaints_t1[["cr_id","UID"]].merge(officer_filled_complaints, on="cr_id", how="right")
+    merged_fc_df = merged_df.groupby('UID').count().reset_index(). sort_values(['cr_id'], ascending = False)
+    merged_fc_df.rename(columns={"cr_id":"complaints_filled"}, inplace=True)
+    merged_final = merged_fc_df.merge(final_df, on = "UID", how = "right")
+
+    return merged_final
 
 def add_settlements_data(officer_profiles, t1):
     '''
