@@ -118,12 +118,36 @@ def add_trr(by_officer_df, t1):
 
     TRR_action_t1 = TRR_main_t1[["UID","trr_id", "trr_date"]].merge(TRR_action_responses, how = "left", on = "trr_id")
     TRR_action_t1_member = TRR_action_t1[TRR_action_t1["person"] == "Member Action"]
+    TRR_action_t1_member["resistance_bin"] = TRR_action_t1_member["resistance_type"].map(lambda x: "Passive" if
+                                                                                                   "Passive" in x
+                                                                                                    else "Active")
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_type"]
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Physical Force" if
+                                                                                              "Force" in x
+                                                                                              or "Impact" in x
+                                                                                              else x)
+
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Non-Lethal Weapon" if
+                                                                                         ("Taser" in x
+                                                                                          and "Display" not in x)
+                                                                                          or "Chemical" in x
+                                                                                          else x)
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Firearm" if
+                                                                                                "Firearm" in x
+                                                                                                else x)
+
+    force_bins = ["Physical Force", "Non-Lethal Weapon", "Firearm"]
+    print(TRR_action_t1_member.groupby("force_bin").size())
+    TRR_action_t1_member["force_bin"][TRR_action_t1_member["force_bin"].isin(force_bins) == False] = "Other"
+
+
     TRR_action_t1_member["force_type"].replace("Chemical (Authorized)", "Chemical", inplace=True)
     TRR_action_t1_member["force_type"].replace(["Verbal Commands", "Member Presence"], "Other", inplace=True)
-    TRR_action_t1_member["force_resistance_feat"] = TRR_action_t1_member["resistance_type"] + " - " + \
-                                                    TRR_action_t1_member["force_type"]
+    TRR_action_t1_member["force_resistance_feat"] = TRR_action_t1_member["resistance_bin"] + " - " + \
+                                                    TRR_action_t1_member["force_bin"]
     TRR_actions_by_officer = TRR_action_t1_member.groupby(["UID", "force_resistance_feat"]).size().unstack().fillna(0)
     TRR_action_cols = TRR_actions_by_officer.columns
+    print(TRR_action_cols)
     TRR_actions_by_officer.reset_index(inplace=True)
     by_officer_df = by_officer_df.merge(TRR_actions_by_officer, how="left", on="UID")
     # by_officer_df[TRR_action_cols.values] = by_officer_df[TRR_action_cols.values].fillna(value=0)
@@ -178,7 +202,7 @@ def add_victim_demo(complaints_t1, by_officer_df):
 def add_salary_data(by_officer_df, t1):
     salary_ranks = pd.read_csv("../data/salary-ranks_2002-2017_2017-09.csv.gz", compression="gzip")
     salary_ranks_t1_T = feat_engineer_helpers.add_salary_data(salary_ranks, t1)
-    salary_cols = ["average_salary", "salary_change"]
+    salary_cols = ["average_salary"]
     by_officer_df = by_officer_df.merge(salary_ranks_t1_T[salary_cols], how='left', on='UID')
     return salary_cols, by_officer_df
 
