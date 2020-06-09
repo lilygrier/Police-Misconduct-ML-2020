@@ -36,9 +36,9 @@ big_params_dict = {
                      "max_depth":[33,37,41,45],
                      "min_samples_split":[2,5,10]}],
     "RandomForest": [{"criterion":("gini", "entropy"),
-                     "max_depth":[3, 5, 7, 9, 19],
-                     "min_samples_split":[5],
-                     "n_estimators": [100, 1000]}]
+                     "max_depth":[3, 5, 7, 9],
+                     "min_samples_split":[2, 5, 7],
+                     "n_estimators": [100, 1000, 5000]}]
 }
 big_how_score = ["recall", "precision", "balanced_accuracy"]
 log_how_score = ["recall", "precision", "balanced_accuracy"]

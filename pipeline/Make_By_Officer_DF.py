@@ -39,6 +39,8 @@ def make_df(t1, t2):
     na_to_zero.extend(complaint_cols)
     victim_demo_cols, by_officer_df = add_victim_demo(complaints_t1, by_officer_df)
     cont_feat_col.extend(victim_demo_cols)
+    officer_filed_complaints_col, by_officer_df = get_officer_filled_complaints(complaints_t1, by_officer_df)
+    na_to_zero.extend(officer_filed_complaints_col)
     salary_col, by_officer_df = add_salary_data(by_officer_df, t1)
     cont_feat_col.extend(salary_col)
     cont_feat_col.extend(na_to_zero)
@@ -52,8 +54,7 @@ def make_df(t1, t2):
     # some final cleaning steps
     final_df = pare_df(final_df, na_to_zero, cont_feat_col)
     final_df["cleaned_rank"].fillna(value="Unknown", inplace=True)
-    #add complaints filled by officer 
-    final_df = get_officer_filled_complaints(complaints_t1, final_df)
+    #add complaints filled by officer
     
     return cont_feat_col, final_df
 
@@ -87,10 +88,10 @@ def get_officer_filled_complaints(complaints_t1, final_df):
     officer_filled_complaints = pd.read_csv("../data/officer-filed-complaints__2017-09.csv.gz", compression="gzip")
     merged_df = complaints_t1[["cr_id","UID"]].merge(officer_filled_complaints, on="cr_id", how="right")
     merged_fc_df = merged_df.groupby('UID').count().reset_index(). sort_values(['cr_id'], ascending = False)
-    merged_fc_df.rename(columns={"cr_id":"complaints_filled"}, inplace=True)
+    merged_fc_df.rename(columns={"cr_id":"officer_filed_complaints"}, inplace=True)
     merged_final = merged_fc_df.merge(final_df, on = "UID", how = "right")
 
-    return merged_final
+    return ["officer_filed_complaints"], merged_final
 
 def add_settlements_data(officer_profiles, t1):
     '''
@@ -149,7 +150,6 @@ def add_trr(by_officer_df, t1):
                                                                                                 else x)
 
     force_bins = ["Physical Force", "Non-Lethal Weapon", "Firearm"]
-    print(TRR_action_t1_member.groupby("force_bin").size())
     TRR_action_t1_member["force_bin"][TRR_action_t1_member["force_bin"].isin(force_bins) == False] = "Other"
 
 
@@ -159,7 +159,6 @@ def add_trr(by_officer_df, t1):
                                                     TRR_action_t1_member["force_bin"]
     TRR_actions_by_officer = TRR_action_t1_member.groupby(["UID", "force_resistance_feat"]).size().unstack().fillna(0)
     TRR_action_cols = TRR_actions_by_officer.columns
-    print(TRR_action_cols)
     TRR_actions_by_officer.reset_index(inplace=True)
     by_officer_df = by_officer_df.merge(TRR_actions_by_officer, how="left", on="UID")
     # by_officer_df[TRR_action_cols.values] = by_officer_df[TRR_action_cols.values].fillna(value=0)
@@ -214,7 +213,7 @@ def add_victim_demo(complaints_t1, by_officer_df):
 def add_salary_data(by_officer_df, t1):
     salary_ranks = pd.read_csv("../data/salary-ranks_2002-2017_2017-09.csv.gz", compression="gzip")
     salary_ranks_t1_T = feat_engineer_helpers.add_salary_data(salary_ranks, t1)
-    salary_cols = ["average_salary"]
+    salary_cols = ["average_salary", "salary_change"]
     by_officer_df = by_officer_df.merge(salary_ranks_t1_T[salary_cols], how='left', on='UID')
     return salary_cols, by_officer_df
 
