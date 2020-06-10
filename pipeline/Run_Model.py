@@ -20,7 +20,7 @@ models_dict = {
     'LogisticRegression': LogisticRegression(max_iter = 1000),
     'GaussianNB': GaussianNB(),
     'DecisionTree': DecisionTreeClassifier(random_state=3),
-    "RandomForest": RandomForestClassifier(class_weight="balanced", random_state =4)
+    # "RandomForest": RandomForestClassifier(class_weight="balanced", random_state =4)
 }
 
 big_params_dict = {
@@ -36,19 +36,19 @@ big_params_dict = {
 }
 big_how_score = ["recall", "precision", "balanced_accuracy"]
 log_how_score = ["recall", "precision", "balanced_accuracy"]
-
-def log_model(df, target_col, cont_feat, cat_feat, refit):
-    '''
-    wrapper function for all of it
-    '''
-    #cont_feat.extend(bin_names) #bin_names comes from data prep
-    train, test = PreProcessing.tt_split(df[[target_col] + cont_feat+cat_feat], 30)
-    pare_df(df, cont_feat, cat_feat, target_col)
-    train_X, train_Y, test_X, test_Y = pre_processing(target_col, train, test, cont_feat, cat_feat)
-    grid = build_log_model(train_X, train_Y, refit=refit)
-    best_log = eval_log_model(grid, test_X, test_Y)
-    fixed_val_threshold(best_log, test_X, test_Y)
-    return None
+#
+# def log_model(df, target_col, cont_feat, cat_feat, refit):
+#     '''
+#     wrapper function for all of it
+#     '''
+#     #cont_feat.extend(bin_names) #bin_names comes from data prep
+#     train, test = PreProcessing.tt_split(df[[target_col] + cont_feat+cat_feat], 30)
+#     pare_df(df, cont_feat, cat_feat, target_col)
+#     train_X, train_Y, test_X, test_Y = pre_processing(target_col, train, test, cont_feat, cat_feat)
+#     grid = build_log_model(train_X, train_Y, refit=refit)
+#     best_log = eval_log_model(grid, test_X, test_Y)
+#     fixed_val_threshold(best_log, test_X, test_Y)
+#     return None
 
 def pare_df(final_df, cont_feat, cat_feat, target_col):
     '''
@@ -67,14 +67,14 @@ def pare_df(final_df, cont_feat, cat_feat, target_col):
 
 
 
-def build_log_model(train_X, train_Y, params_dict=log_params_dict, estimator=log_est, refit="recall"):
-    grid = GridSearchCV(estimator=estimator, 
-                        param_grid=params_dict, 
-                        scoring=log_how_score, 
-                        cv=5, 
-                        refit=refit)
-    grid.fit(train_X, train_Y)
-    return grid
+# def build_log_model(train_X, train_Y, params_dict=log_params_dict, estimator=log_est, refit="recall"):
+#     grid = GridSearchCV(estimator=estimator,
+#                         param_grid=params_dict,
+#                         scoring=log_how_score,
+#                         cv=5,
+#                         refit=refit)
+#     grid.fit(train_X, train_Y)
+#     return grid
 
 def build_model(train_X, train_Y, refit, model_type):
     estimator = models_dict[model_type]
@@ -107,13 +107,15 @@ def single_model(df, model_type, target_col, cont_feat, cat_feat, refit):
 
 
 def try_four_models(df, target_col, cont_feat, cat_feat, refit):
-    """Copied from log_model to call big_grid_search instead of build_log_model"""
+    """Copied from log_model to call big_grid_search instead of build_log_model
+    Returns list of estimators that are best estimators of each type"""
     train, test = PreProcessing.tt_split(df[[target_col] + cont_feat+cat_feat], 30)
     train_X, train_Y, test_X, test_Y, labels = pre_processing(target_col, train, test, cont_feat, cat_feat)
-    big_grid_search(train_X, train_Y, test_X, test_Y, refit=refit)
+    return big_grid_search(train_X, train_Y, test_X, test_Y, refit=refit)
 
 
 def big_grid_search(train_X, train_Y, test_X, test_Y, refit="recall"):
+    out_list = []
     for k in models_dict.keys():
         print()
         print("got to ", k)
@@ -128,6 +130,8 @@ def big_grid_search(train_X, train_Y, test_X, test_Y, refit="recall"):
                             refit=refit)
         grid.fit(train_X, train_Y)
         eval_model(grid, test_X, test_Y, k)
+        out_list.append(grid.best_estimator_)
+    return out_list
 
 def eval_model(grid_search, test_X, test_Y, model_type):
     # display(pd.DataFrame(grid_search.cv_results_))
@@ -135,9 +139,11 @@ def eval_model(grid_search, test_X, test_Y, model_type):
     pred_Y = best_model.predict(test_X)
     print("best ", model_type, " metrics:")
     print(sklearn.metrics.classification_report(test_Y, pred_Y, output_dict=True)["True"])
+    print("balanced_accuracy:", sklearn.metrics.balanced_accuracy_score(test_Y, pred_Y))
     pred_Y_probs = best_model.predict_proba(test_X)[:,(best_model.classes_ ==True)]
     sklearn.metrics.precision_recall_curve(test_Y, pred_Y_probs)
     print(sklearn.metrics.plot_precision_recall_curve(best_model, test_X, test_Y))
+
     return best_model
 
 
@@ -205,5 +211,4 @@ def pre_processing(target_col, train, test, cont_feat, cat_feat, normalize_cont 
 
 
     return train_X, train_Y, test_X, test_Y, labels
-
 
