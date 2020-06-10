@@ -11,6 +11,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 import numpy as np
+from graphviz import Source
 import sklearn
 
 log_est = LogisticRegression(max_iter = 1000,random_state=30)
@@ -32,10 +33,10 @@ big_params_dict = {
     'GaussianNB': [{'priors': (None,)}],
     'LinearSVC': [{'C': [.01,.1,1,10,100], 'random_state': (3,)}],
     "DecisionTree": [{"criterion":("gini", "entropy"),
-                     "max_depth":[1,3,5],
+                     "max_depth":[33,37,41,45],
                      "min_samples_split":[2,5,10]}],
     "RandomForest": [{"criterion":("gini", "entropy"),
-                     "max_depth":[1,3,5],
+                     "max_depth":[29,33,37],
                      "min_samples_split":[2,5,10],
                      "n_estimators": [100, 1000, 5000]}]
 }
@@ -96,7 +97,10 @@ def build_model(train_X, train_Y, refit, model_type):
 def single_model(df, model_type, target_col, cont_feat, cat_feat, refit):
     """For decision tree refit can be one"""
     train, test = PreProcessing.tt_split(df[[target_col] + cont_feat+cat_feat], 30)
-    train_X, train_Y, test_X, test_Y, labels = pre_processing(target_col, train, test, cont_feat, cat_feat)
+    normalize_cont = True
+    if model_type == "RandomForest" or model_type == "DecisionTree":
+        normalize_cont = False
+    train_X, train_Y, test_X, test_Y, labels = pre_processing(target_col, train, test, cont_feat, cat_feat, normalize_cont)
     grid = build_model(train_X, train_Y, refit, model_type)
     best_model = eval_model(grid, test_X, test_Y, model_type)
     fixed_val_threshold(best_model, test_X, test_Y)
@@ -149,6 +153,12 @@ def eval_log_model(grid_search, test_X, test_Y):
     print(sklearn.metrics.plot_precision_recall_curve(best_logistic, test_X, test_Y))
     return best_logistic
 
+def visualize_tree(tree, labels):
+    """Written by Sasha on June 9th"""
+    tree_string_1 = sklearn.tree.export_graphviz(tree, feature_names=labels)
+    tree_vis_1 = Source(tree_string_1)
+    return tree_vis_1
+
 def fixed_val_threshold(best_model, test_X, test_Y, custom_cutoff = None):
     fixed_val_threshold_metrics = pd.DataFrame(columns = ["Cutoff", "precision", "recall", "f1-score","support"])
     pred_Y_prob_True = best_model.predict_proba(test_X)[:,1]
@@ -167,25 +177,32 @@ def fixed_val_threshold(best_model, test_X, test_Y, custom_cutoff = None):
     display("fixed val threshold metrics: ", fixed_val_threshold_metrics)
     return None
 
-def pre_processing(target_col, train, test, cont_feat, cat_feat):
+def pre_processing(target_col, train, test, cont_feat, cat_feat, normalize_cont = True):
     '''
     Impute missing values, normalize continuous values, 
     one-hot encode categorical values, split up features and targets.
+    norm_OHE flag new morning of June 9th by Sasha, don't normalize or OHE for trees
     '''
 
     # impute na to median
     PreProcessing.na_to_median(train, test, cont_feat)
     # normalize
-    my_scaler, cont_feat_norm = PreProcessing.normalize(train, cont_feat)
-    PreProcessing.normalize(test, cont_feat, my_scaler)
+    if normalize_cont:
+        my_scaler, cont_feat_final = PreProcessing.normalize(train, cont_feat)
+        PreProcessing.normalize(test, cont_feat, my_scaler)
+    else:
+        cont_feat_final = cont_feat
+
     # one-hot encode
     OHE, train = PreProcessing.one_hot(train, cat_feat)
     _, test = PreProcessing.one_hot(test, cat_feat, OHE)
+    cat_feat_final = list(OHE.get_feature_names())
 
-    train_limited, labels = PreProcessing.limit_for_fit(train, target_col, cont_feat_norm, list(OHE.get_feature_names()))
-    test_limited, labels = PreProcessing.limit_for_fit(test, target_col, cont_feat_norm, list(OHE.get_feature_names()))
+    train_limited, labels = PreProcessing.limit_for_fit(train, target_col, cont_feat_final, cat_feat_final)
+    test_limited, labels = PreProcessing.limit_for_fit(test, target_col, cont_feat_final, cat_feat_final)
     train_X, train_Y = PreProcessing.feat_target_split(train_limited, target_col)
     test_X, test_Y = PreProcessing.feat_target_split(test_limited, target_col)
+
 
     return train_X, train_Y, test_X, test_Y, labels
 
