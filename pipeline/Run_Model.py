@@ -16,13 +16,8 @@ import sklearn
 
 log_est = LogisticRegression(max_iter = 1000,random_state=30)
 
-log_params_dict = {'penalty':("l2", "none") ,
-                 'C': [.01,.1,1,10,100]}
-svc_params_dict = {'LinearSVC': [{'C': x, 'random_state': 15} \
-                  for x in (0.01, 0.1, 1, 10, 100)]}
 models_dict = {
     'LogisticRegression': LogisticRegression(max_iter = 1000),
-    #'LinearSVC': SVC(kernel="linear", probability=True,random_state = 3),
     'GaussianNB': GaussianNB(),
     'DecisionTree': DecisionTreeClassifier(random_state=3),
     "RandomForest": RandomForestClassifier(class_weight="balanced", random_state =4)
@@ -31,9 +26,8 @@ models_dict = {
 big_params_dict = {
     'LogisticRegression': [{'penalty': ("l2", "none"), 'C': [.01,.1,1,10,100], 'random_state': (3,)}],
     'GaussianNB': [{'priors': (None,)}],
-    'LinearSVC': [{'C': [.01,.1,1,10,100], 'random_state': (3,)}],
     "DecisionTree": [{"criterion":("gini", "entropy"),
-                     "max_depth":[33,37,41,45],
+                     "max_depth":[3, 7, 9, 13],
                      "min_samples_split":[2,5,10]}],
     "RandomForest": [{"criterion":("gini", "entropy"),
                      "max_depth":[3, 5, 7, 9],
