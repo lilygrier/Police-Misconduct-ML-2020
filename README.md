@@ -44,7 +44,7 @@ additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015,
 cont_feat = ["birth_year", "start_date_timestamp", "male"]
 cont_feat.extend(additional_cont_feat)
 cat_feat = ["race"]
-log, log_feature_importances = Run_Model.single_model(final_df, "LogisticRegression", 
+rf, rf_feature_importances = Run_Model.single_model(final_df, "RandomForest", 
                                                       target_col, cont_feat, cat_feat, "balanced_accuracy")
 log is the best log model object and log_feature_importances is a dataframe of feature importances associated with the model
 To try a model type other than LogisticRegression, you would simply enter the name of the model
