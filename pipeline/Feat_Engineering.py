@@ -124,8 +124,10 @@ def add_victim_race(complaints_t1, complaints_victims, demographic):
     by_officer_demo_breakdown.set_index("UID", inplace=True)
     by_officer_demo_breakdown = by_officer_demo_breakdown.div(by_officer_demo_breakdown.sum(axis=1), axis=0)
     by_officer_demo_breakdown.columns = ["Pcnt Complaints Against " + x for x in by_officer_demo_breakdown.columns]
-
-    return by_officer_demo_breakdown, list(by_officer_demo_breakdown.columns)
+    victim_demo_cols = list(by_officer_demo_breakdown.columns)
+    if demographic == "gender": #Hard code solution when against deadline
+        victim_demo_cols.remove("Pcnt Complaints Against FEMALE")
+    return by_officer_demo_breakdown, victim_demo_cols
 
 
 def make_target_col(final_df, desired_targets, col_name):

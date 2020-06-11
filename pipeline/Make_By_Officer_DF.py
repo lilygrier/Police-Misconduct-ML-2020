@@ -31,6 +31,7 @@ def make_df(t1, t2):
     complaints_t1, complaints_t2 = get_relevant_complaints(t1, t2)
     relevant_UID = list(complaints_t1["UID"].unique()) + list(complaints_t2["UID"].unique())
     by_officer_df = officer_profiles[officer_profiles["UID"].isin(relevant_UID)]
+    by_officer_df["male"] = (by_officer_df["gender"] =="MALE")
     settlement_col, by_officer_df = add_settlements_data(by_officer_df, t1)
     na_to_zero.extend(settlement_col)
     trr_bins, by_officer_df = add_trr(by_officer_df, t1)
@@ -67,7 +68,7 @@ def pare_df(df, na_to_zero, cont_feat_col):
     target_cols = ["target_use_of_force", "target_drug", "target_racial", "target_sustained",
                    "target_nonviolent", "target_other"]
     other_vars_to_include = ["UID","start_date_timestamp", "cleaned_rank", "birth_year",
-                             "current_unit", "race", "gender"]
+                             "current_unit", "race", "male"]
     df[target_cols] = df[target_cols].fillna(value=False)
     df["start_date"] = pd.to_datetime(df["start_date"])
     df["start_date_timestamp"] = df["start_date"].apply(lambda x: datetime.timestamp(x) if 

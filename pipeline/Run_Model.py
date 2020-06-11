@@ -20,7 +20,7 @@ models_dict = {
     'LogisticRegression': LogisticRegression(max_iter = 1000),
     'GaussianNB': GaussianNB(),
     'DecisionTree': DecisionTreeClassifier(random_state=3),
-    # "RandomForest": RandomForestClassifier(class_weight="balanced", random_state =4)
+    "RandomForest": RandomForestClassifier(class_weight="balanced", random_state =4)
 }
 
 big_params_dict = {
@@ -100,10 +100,20 @@ def single_model(df, model_type, target_col, cont_feat, cat_feat, refit):
     fixed_val_threshold(best_model, test_X, test_Y)
     feature_headers = list(labels)
     feature_headers.remove(target_col)
+
     return best_model, pd.DataFrame(index=feature_headers, data=best_model.feature_importances_).sort_values(by=0,
                                                                                                              ascending=
                                                                                                              False)
+def eval_single_model(best_model, test_X, test_Y):
+    # display(pd.DataFrame(grid_search.cv_results_))
+    pred_Y = best_model.predict(test_X)
+    print(sklearn.metrics.classification_report(test_Y, pred_Y, output_dict=True)["True"])
+    print("balanced_accuracy:", sklearn.metrics.balanced_accuracy_score(test_Y, pred_Y))
+    pred_Y_probs = best_model.predict_proba(test_X)[:,(best_model.classes_ ==True)]
+    sklearn.metrics.precision_recall_curve(test_Y, pred_Y_probs)
+    print(sklearn.metrics.plot_precision_recall_curve(best_model, test_X, test_Y))
 
+    return best_model
 
 
 def try_four_models(df, target_col, cont_feat, cat_feat, refit):
