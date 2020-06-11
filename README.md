@@ -31,21 +31,24 @@ To use all the features we included in our model, you have to perform a bit of m
 
 The functions are used as follows:
 
-additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))
-cont_feat = ["birth_year", "start_date_timestamp", "male"]
-cont_feat.extend(additional_cont_feat)
-cat_feat = ["race"]
-target_col = "severe_complaint"
-many_models = Run_Model.try_four_models(final_df, target_col, cont_feat, cat_feat, "balanced_accuracy")
-many_models is a list of the best estimators of each model type
+To run all four model types:
+
+additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))<br/>
+cont_feat = ["birth_year", "start_date_timestamp", "male"]<br/>
+cont_feat.extend(additional_cont_feat)<br/>
+cat_feat = ["race"]<br/>
+target_col = "severe_complaint"<br/>
+many_models = Run_Model.try_four_models(final_df, target_col, cont_feat, cat_feat, "balanced_accuracy")<br/>
+many_models is a list containing the best estimator of each model type
 
 To run a single model, you would do:
-additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))
-cont_feat = ["birth_year", "start_date_timestamp", "male"]
-cont_feat.extend(additional_cont_feat)
-cat_feat = ["race"]
+
+additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))<br/>
+cont_feat = ["birth_year", "start_date_timestamp", "male"]<br/>
+cont_feat.extend(additional_cont_feat)<br/>
+cat_feat = ["race"]<br/>
 rf, rf_feature_importances = Run_Model.single_model(final_df, "RandomForest", 
-                                                      target_col, cont_feat, cat_feat, "balanced_accuracy")
-log is the best log model object and log_feature_importances is a dataframe of feature importances associated with the model
+                                                      target_col, cont_feat, cat_feat, "balanced_accuracy")<br/>
+log is the best log model object and log_feature_importances is a dataframe of feature importances associated with the model<br/>
 To try a model type other than LogisticRegression, you would simply enter the name of the model
 type into the function.
