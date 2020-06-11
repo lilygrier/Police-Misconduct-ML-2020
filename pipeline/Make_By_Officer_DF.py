@@ -39,6 +39,8 @@ def make_df(t1, t2):
     na_to_zero.extend(complaint_cols)
     victim_demo_cols, by_officer_df = add_victim_demo(complaints_t1, by_officer_df)
     cont_feat_col.extend(victim_demo_cols)
+    officer_filed_complaints_col, by_officer_df = get_officer_filled_complaints(complaints_t1, by_officer_df)
+    na_to_zero.extend(officer_filed_complaints_col)
     salary_col, by_officer_df = add_salary_data(by_officer_df, t1)
     cont_feat_col.extend(salary_col)
     cont_feat_col.extend(na_to_zero)
@@ -52,6 +54,8 @@ def make_df(t1, t2):
     # some final cleaning steps
     final_df = pare_df(final_df, na_to_zero, cont_feat_col)
     final_df["cleaned_rank"].fillna(value="Unknown", inplace=True)
+    #add complaints filled by officer
+    
     return cont_feat_col, final_df
 
 def pare_df(df, na_to_zero, cont_feat_col):
@@ -79,6 +83,15 @@ def get_relevant_complaints(t1, t2):
     complaints = pd.read_csv("../data/complaints-complaints.csv.gz", compression="gzip")
     complaints_t1, complaints_t2 = feat_engineer_helpers.relevant_complaints(complaints, complaints_accused, t1, t2)
     return (complaints_t1, complaints_t2)
+
+def get_officer_filled_complaints(complaints_t1, final_df):
+    officer_filled_complaints = pd.read_csv("../data/officer-filed-complaints__2017-09.csv.gz", compression="gzip")
+    merged_df = complaints_t1[["cr_id","UID"]].merge(officer_filled_complaints, on="cr_id", how="right")
+    merged_fc_df = merged_df.groupby('UID').count().reset_index(). sort_values(['cr_id'], ascending = False)
+    merged_fc_df.rename(columns={"cr_id":"officer_filed_complaints"}, inplace=True)
+    merged_final = merged_fc_df.merge(final_df, on = "UID", how = "right")
+
+    return ["officer_filed_complaints"], merged_final
 
 def add_settlements_data(officer_profiles, t1):
     '''
@@ -118,10 +131,32 @@ def add_trr(by_officer_df, t1):
 
     TRR_action_t1 = TRR_main_t1[["UID","trr_id", "trr_date"]].merge(TRR_action_responses, how = "left", on = "trr_id")
     TRR_action_t1_member = TRR_action_t1[TRR_action_t1["person"] == "Member Action"]
+    TRR_action_t1_member["resistance_bin"] = TRR_action_t1_member["resistance_type"].map(lambda x: "Passive" if
+                                                                                                   "Passive" in x
+                                                                                                    else "Active")
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_type"]
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Physical Force" if
+                                                                                              "Force" in x
+                                                                                              or "Impact" in x
+                                                                                              else x)
+
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Non-Lethal Weapon" if
+                                                                                         ("Taser" in x
+                                                                                          and "Display" not in x)
+                                                                                          or "Chemical" in x
+                                                                                          else x)
+    TRR_action_t1_member["force_bin"] = TRR_action_t1_member["force_bin"].map(lambda x: "Firearm" if
+                                                                                                "Firearm" in x
+                                                                                                else x)
+
+    force_bins = ["Physical Force", "Non-Lethal Weapon", "Firearm"]
+    TRR_action_t1_member["force_bin"][TRR_action_t1_member["force_bin"].isin(force_bins) == False] = "Other"
+
+
     TRR_action_t1_member["force_type"].replace("Chemical (Authorized)", "Chemical", inplace=True)
     TRR_action_t1_member["force_type"].replace(["Verbal Commands", "Member Presence"], "Other", inplace=True)
-    TRR_action_t1_member["force_resistance_feat"] = TRR_action_t1_member["resistance_type"] + " - " + \
-                                                    TRR_action_t1_member["force_type"]
+    TRR_action_t1_member["force_resistance_feat"] = TRR_action_t1_member["resistance_bin"] + " - " + \
+                                                    TRR_action_t1_member["force_bin"]
     TRR_actions_by_officer = TRR_action_t1_member.groupby(["UID", "force_resistance_feat"]).size().unstack().fillna(0)
     TRR_action_cols = TRR_actions_by_officer.columns
     TRR_actions_by_officer.reset_index(inplace=True)

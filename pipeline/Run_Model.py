@@ -36,8 +36,8 @@ big_params_dict = {
                      "max_depth":[33,37,41,45],
                      "min_samples_split":[2,5,10]}],
     "RandomForest": [{"criterion":("gini", "entropy"),
-                     "max_depth":[29,33,37],
-                     "min_samples_split":[2,5,10],
+                     "max_depth":[3, 5, 7, 9],
+                     "min_samples_split":[2, 5, 7],
                      "n_estimators": [100, 1000, 5000]}]
 }
 big_how_score = ["recall", "precision", "balanced_accuracy"]
@@ -104,7 +104,13 @@ def single_model(df, model_type, target_col, cont_feat, cat_feat, refit):
     grid = build_model(train_X, train_Y, refit, model_type)
     best_model = eval_model(grid, test_X, test_Y, model_type)
     fixed_val_threshold(best_model, test_X, test_Y)
-    return best_model, labels
+    feature_headers = list(labels)
+    feature_headers.remove(target_col)
+    return best_model, pd.DataFrame(index=feature_headers, data=best_model.feature_importances_).sort_values(by=0,
+                                                                                                             ascending=
+                                                                                                             False)
+
+
 
 def try_four_models(df, target_col, cont_feat, cat_feat, refit):
     """Copied from log_model to call big_grid_search instead of build_log_model"""
@@ -163,7 +169,7 @@ def fixed_val_threshold(best_model, test_X, test_Y, custom_cutoff = None):
     fixed_val_threshold_metrics = pd.DataFrame(columns = ["Cutoff", "precision", "recall", "f1-score","support"])
     pred_Y_prob_True = best_model.predict_proba(test_X)[:,1]
     if not custom_cutoff:
-        cutoffs = [0, .00001, .01, .05, .1, .2, .5, .7, .9, .95]
+        cutoffs = [0, .00001, .01, .05, .1, .2, .3, .4, .5, .6, .7, .8, .9, .95]
     else:
         cutoffs = custom_cutoff
     for c in cutoffs:
