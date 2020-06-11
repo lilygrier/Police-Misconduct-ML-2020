@@ -14,8 +14,6 @@ import numpy as np
 from graphviz import Source
 import sklearn
 
-log_est = LogisticRegression(max_iter = 1000,random_state=30)
-
 models_dict = {
     'LogisticRegression': LogisticRegression(max_iter = 1000),
     'GaussianNB': GaussianNB(),
@@ -109,8 +107,6 @@ def eval_single_model(best_model, test_X, test_Y):
     return best_model
 
 def try_four_models(df, target_col, cont_feat, cat_feat, refit):
-    """Copied from log_model to call big_grid_search instead of build_log_model
-    Returns list of estimators that are best estimators of each type"""
     '''
     Processes data and runs grid search of logistic regression, naive bayes, 
     decision tree, and random forest models.

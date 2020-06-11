@@ -18,9 +18,34 @@ to find a time period that presented enough data to work with.
 
 Changing the target column and the way features are engineered should be fairly easy as different groups of features (count of complaints, demographics of victims, TRR data etc.) are engineering in different functions that can be changed without affecting the overall function of the pipeline.
 
-To create a model, first one calls make_df from Make_By_Officer_DF with their chosen study period. 
+To create a model, first one calls make_df from Make_By_Officer_DF with their chosen study period.
+To look at observations from 2012-2014 to make predictions about officer behavior in 2015, 
+one would call:
+additional_cont_feat, final_df = make_df((2012, 2014), (2015, 2015)).
 This returns most of the continuous features as a list as well as the engineered features.
 
 Then one calls functions from Run_Model with any chosen feature combination and "severe_complaints" as the target.
-try_four_models() does grid search across all parameters and all models while single_model() allows the user to specify
-which type of model they would like to run.
+try_four_models() does grid search across all parameters for a Logistic Regression, Naive Bayes,
+Decision Tree, and Random Forest while single_model() allows the user to specify which type of model they would like to run. 
+To use all the features we included in our model, you have to perform a bit of manual feature manipulation between calling make_df and running models, as shown below.
+
+The functions are used as follows:
+
+additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))
+cont_feat = ["birth_year", "start_date_timestamp", "male"]
+cont_feat.extend(additional_cont_feat)
+cat_feat = ["race"]
+target_col = "severe_complaint"
+many_models = Run_Model.try_four_models(final_df, target_col, cont_feat, cat_feat, "balanced_accuracy")
+many_models is a list of the best estimators of each model type
+
+To run a single model, you would do:
+additional_cont_feat, final_df = Make_By_Officer_DF.make_df((2012, 2014), (2015, 2015))
+cont_feat = ["birth_year", "start_date_timestamp", "male"]
+cont_feat.extend(additional_cont_feat)
+cat_feat = ["race"]
+log, log_feature_importances = Run_Model.single_model(final_df, "LogisticRegression", 
+                                                      target_col, cont_feat, cat_feat, "balanced_accuracy")
+log is the best log model object and log_feature_importances is a dataframe of feature importances associated with the model
+To try a model type other than LogisticRegression, you would simply enter the name of the model
+type into the function.
