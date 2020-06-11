@@ -61,18 +61,17 @@ def pare_df(df, na_to_zero, cont_feat_col):
     Returns:
         a Pandas dataframe pared down
     '''
+    target_col = "severe_complaint"
 
-    target_cols = ["target_use_of_force", "target_drug", "target_racial", "target_sustained",
-                   "target_nonviolent", "target_other"]
     other_vars_to_include = ["UID","start_date_timestamp", "cleaned_rank", "birth_year",
                              "current_unit", "race", "male"]
-    df[target_cols] = df[target_cols].fillna(value=False)
+    df[target_col] = df[target_col].fillna(value=False)
     df["start_date"] = pd.to_datetime(df["start_date"])
     df["start_date_timestamp"] = df["start_date"].apply(lambda x: datetime.timestamp(x) if 
                                                                   (pd.isnull(x) == False) else None)
     df[na_to_zero] = df[na_to_zero].fillna(value=0)
     df["cleaned_rank"] = df["cleaned_rank"].fillna(value="Unknown")
-    vars_to_include = target_cols + cont_feat_col + other_vars_to_include
+    vars_to_include = [target_col] + cont_feat_col + other_vars_to_include
     
     return df[vars_to_include]
 

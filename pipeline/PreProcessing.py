@@ -44,8 +44,8 @@ def na_to_median(train, test, cont_feat):
         test[f].fillna(train_median, inplace=True)
 
 
-def normalize(df, feat_to_norm, my_scaler = None):
-   '''
+def normalize(df, feat_to_norm, my_scaler=None):
+    '''
     Takes a dataframe with one or more continuous features specified and
     adds column that is that feature normalized.
     Inputs:
@@ -57,6 +57,7 @@ def normalize(df, feat_to_norm, my_scaler = None):
         list of scaler objects to normalize train data, 
         list of labels for normalized columns
     '''
+
     if not my_scaler:
         my_scaler = StandardScaler()
         my_scaler.fit(df[feat_to_norm])
